@@ -18,12 +18,15 @@ from elasticsearch.client import _normalize_hosts
 
 logger = logging.getLogger("rally.main")
 
+logging.basicConfig(level=logging.DEBUG)
+logging.getLogger("elasticapm").setLevel(logging.DEBUG)
+
 DEFAULT_CLIENT_OPTIONS = "timeout:60000,request_timeout:60000"
 
 
 # we want to use some basic logging even before the output to log file is configured
 def pre_configure_logging():
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.DEBUG)
 
 
 def application_log_dir_path():
@@ -51,7 +54,7 @@ def configure_logging(cfg):
     else:
         ch = logging.StreamHandler(stream=sys.stdout)
 
-    log_level = logging.INFO
+    log_level = logging.DEBUG
     ch.setLevel(log_level)
     formatter = logging.Formatter("%(asctime)s,%(msecs)d PID:%(process)d %(name)s %(levelname)s %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
     formatter.converter = time.gmtime
@@ -63,6 +66,7 @@ def configure_logging(cfg):
 
     logging.root.addHandler(ch)
     logging.getLogger("elasticsearch").setLevel(logging.WARNING)
+    logging.getLogger("elasticapm").setLevel(logging.DEBUG)
 
     if profiling_enabled:
         profile_file = "%s/profile.log" % application_log_dir_path()
@@ -513,7 +517,9 @@ def kv_to_map(kvs):
         result[k.strip()] = convert(v.strip())
     return result
 
+import elasticapm
 
+@elasticapm.trace()
 def main():
     check_python_version()
 
@@ -640,4 +646,11 @@ def main():
 
 
 if __name__ == "__main__":
+    apm_client = elasticapm.Client()
+    apm_client.config.app_name = 'myapp'
+    apm_client._framework = 'None'
+    apm_client._framework_version = 'None'
+
+    apm_client.begin_transaction("rally.main")
     main()
+    apm_client.end_transaction("rally.main")

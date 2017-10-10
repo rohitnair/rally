@@ -31,7 +31,8 @@ install_requires = [
     # recommended library for thespian to identify actors more easily with `ps`
     # "setproctitle==1.1.10",
     # always use the latest version, these are certificate files...
-    "certifi"
+    "certifi",
+    "elastic-apm==1.0.0.dev2"
 ]
 
 tests_require = [
